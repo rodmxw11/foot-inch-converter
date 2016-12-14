@@ -77,5 +77,20 @@
     )
   )
 
+(defn to-fractional-inch
+  "Returns an upper and lower rational with an error"
+  [f denom]
+  {:pre [(<= 0.0 f) (<= 1 denom) (integer? denom)]}
+  (let [
+        n (int f)
+        frac (- f n)
+        low (int (* frac denom))
+        hi (inc low)
+        error (- (* frac denom) low)
+        ]
+    [n (/ low denom) (/ hi denom) error]
+    )
+  )
+
 
 

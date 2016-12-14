@@ -51,3 +51,27 @@
                   )
     )
   )
+
+(defn frac-inch=
+  [[a1 a2 a3 a4][b1 b2 b3 b4]]
+  (and
+    (= a1 b1)
+    (= a2 b2)
+    (= a3 b3)
+    (float= a4 b4)
+    )
+  )
+
+(deftest to-fractional-inch-test
+  (testing "to-fractional-inch works OK"
+    (is (frac-inch= [0 0 1/16 0.0] (to-fractional-inch 0.0 16)))
+    (are [f denom v]
+      (frac-inch= v (to-fractional-inch f denom))
+      8.5 2 [8 1/2 1 0.0]
+      8.25 2 [8 0 1/2 0.5]
+      8.75 2 [8 1/2 1 0.5]
+      8.9999999 2 [8 1/2 1 0.9999999999]
+      8.0000001 2 [8 0 1/2 0.0]
+      8.225 1 [8 0 1 0.225]
+      )
+    ))
