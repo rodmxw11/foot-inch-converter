@@ -12,7 +12,7 @@
 
 (def ^:const epsilon
   "Tolerance for comparing floating point numbers"
-  0.0000001)
+  1e-7)
 
 (defn float-abs
   "Absolute value of a float"
