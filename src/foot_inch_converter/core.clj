@@ -1,7 +1,7 @@
 (ns foot-inch-converter.core)
 
-(def foot-inch-regex
-;;  #"^\s*(\d+)(\.\d*)?(?:\s+(\d+)(\.\d*)?(?:\s+(\d+)\/(\d+))?)?\s*$"
+(def ^:const foot-inch-regex
+  "Regex that recognizes 'feet inch fraction' numbers, eg: '10 3 5/8'"
   #"(?x)^\s*
   (\d+(?:\.\d*)?)
   (?:\s+
@@ -10,34 +10,56 @@
     )?"
   )
 
-(def epsilon 0.0000001)
+(def ^:const epsilon
+  "Tolerance for comparing floating point numbers"
+  0.0000001)
 
-(defn float= [f1 f2]
+(defn float-abs
+  "Absolute value of a float"
+  [f1]
+  (if (>= 0.0 f1) f1 (- f1) )
+  )
+
+(defn float=
+  "Compare two floats for equality within a tolerance of epsilon"
+  [f1 f2]
   (case [(nil? f1) (nil? f2)]
     ([true true]) true
     ([true false] [false true]) false
-    (<= (Math/abs (- f1 f2)) epsilon)
+    (<= (float-abs (- f1 f2)) epsilon)
     )
   )
 
-(defn vfloat= [v1 v2]
+(defn vfloat=
+  "Compares two vectors of floats for equality using fuzzy compare"
+  [v1 v2]
   (every? true?
           (map float= v1 v2)
           )
   )
 
-(defn parse-foot-inch [s]
+(defn parse-float
+  "Parse a string into a floating point number"
+  [s]
+  (Float/parseFloat s))
+
+(defn parse-foot-inch
+  "Parse a 'foot inch fraction' string and return either nil if the
+  string cannot be parsed or a vector of four floats"
+  [s]
   (if-let [v (re-matches foot-inch-regex s)]
     (->>
       v
       (drop 1)
-      (map #(if % (Float/parseFloat %)))
+      (map #(if % (parse-float %)))
       vec
       )
     )
   )
 
-(defn to-feet [[feet inches num denom]]
+(defn to-feet
+  "Convert a vector of four floats into fractional feet"
+  [[feet inches num denom]]
   (+
     feet
     (if inches (/ inches 12.0) 0.0)
@@ -45,11 +67,15 @@
     )
   )
 
-(defn to-inches [[feet inches num denom]]
+(defn to-inches
+  "Convert a vector of floats into fractional inches"
+  [[feet inches num denom]]
   (+
     (* feet 12.0)
     (if inches inches 0.0)
     (if (and num denom (not (zero? denom))) (/ num denom 1.0) 0.0)
     )
   )
+
+
 
