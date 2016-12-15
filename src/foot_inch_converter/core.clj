@@ -92,5 +92,19 @@
     )
   )
 
+(defn to-feet-fractional-inch
+  [f denom]
+  (let [[inches hi low error] (to-fractional-inch f denom)]
+    [()]
+    ))
+
+
+(defn -main[& args]
+  (do
+    (println "Enter a number")
+    (let [ans (read-line)]
+      (println "You entered: " ans))
+    )
+  )
 
 
