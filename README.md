@@ -21,25 +21,25 @@ Library to convert between fractional and decimal foot-inch measurements.
 ```
 
 **conv/parse-foot-inch** takes a string with one to three numbers:
-1. **feet** (required) as either a whole or decimal number
-2. **inches** (optional) as either a whole or decimal number
-3. **fraction** (optional) as two whole numbers separated by a forward slash character
+ 1. **feet** (required) as either a whole or decimal number
+ 2. **inches** (optional) as either a whole or decimal number
+ 3. **fraction** (optional) as two whole numbers separated by a forward slash character
 
 Examples of input strings:
 
 |Input |Comment |
 | ------|--------------------|
-|1.233 |decimal feet |
-|0 3.445 |decimal inches |
-|5 6 3/4 |feet inches fraction |
-|0 0 3/64 |fraction of an inch |
+|"1.233" |decimal feet |
+|"0 3.445" |decimal inches |
+|"5 6 3/4" |feet inches fraction |
+|"0 0 3/64" |fraction of an inch |
 
 
 The returned foot-inch vector contains 4 floating point numbers:
-0. feet
-1. nil or inches
-2. nil or inch fraction numerator
-3. nil or inch fraction denominator 
+ 0. feet
+ 1. nil or inches
+ 2. nil or inch fraction numerator
+ 3. nil or inch fraction denominator 
 
 ### Convert the foot-inch vector
 
