@@ -1,6 +1,6 @@
 (defproject foot-inch-converter "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Convert between fractional and decimal foot-inch measurements"
+  :url "https://github.com/rodmxw11/foot-inch-converter"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :main foot-inch-converter.core

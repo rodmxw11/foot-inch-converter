@@ -25,6 +25,34 @@
 (ns foot-inch-converter.core-test
   (:require [clojure.test :refer :all]
             [foot-inch-converter.core :refer :all]))
+(def ^:const epsilon
+  "Tolerance for comparing floating point numbers"
+  1e-7)
+
+
+(defn float-abs
+  "Absolute value of a float"
+  [f1]
+  (if (>= 0.0 f1) f1 (- f1) )
+  )
+
+(defn float=
+  "Compare two floats for equality within a tolerance of epsilon"
+  [f1 f2]
+  (case [(nil? f1) (nil? f2)]
+    ([true true]) true
+    ([true false] [false true]) false
+    (<= (float-abs (- f1 f2)) epsilon)
+    )
+  )
+
+(defn vfloat=
+  "Compares two vectors of floats for equality using fuzzy compare"
+  [v1 v2]
+  (every? true?
+          (map float= v1 v2)
+          )
+  )
 
 (deftest regex-test
   (testing "foot-inch-regex basic test"

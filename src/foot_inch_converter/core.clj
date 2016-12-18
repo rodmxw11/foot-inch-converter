@@ -34,35 +34,7 @@
     )?"
   )
 
-(def ^:const epsilon
-  "Tolerance for comparing floating point numbers"
-  1e-7)
-
-(defn float-abs
-  "Absolute value of a float"
-  [f1]
-  (if (>= 0.0 f1) f1 (- f1) )
-  )
-
-(defn float=
-  "Compare two floats for equality within a tolerance of epsilon"
-  [f1 f2]
-  (case [(nil? f1) (nil? f2)]
-    ([true true]) true
-    ([true false] [false true]) false
-    (<= (float-abs (- f1 f2)) epsilon)
-    )
-  )
-
-(defn vfloat=
-  "Compares two vectors of floats for equality using fuzzy compare"
-  [v1 v2]
-  (every? true?
-          (map float= v1 v2)
-          )
-  )
-
-(defn parse-float
+(defn- parse-float
   "Parse a string into a floating point number"
   [s]
   (Float/parseFloat s))
@@ -82,7 +54,7 @@
   )
 
 (defn to-feet
-  "Convert a vector of four floats into fractional feet"
+  "Convert a vector of four floats into decimal feet"
   [[feet inches num denom]]
   (+
     feet
@@ -92,7 +64,7 @@
   )
 
 (defn to-inches
-  "Convert a vector of floats into fractional inches"
+  "Convert a vector of floats into decimal inches"
   [[feet inches num denom]]
   (+
     (* feet 12.0)
