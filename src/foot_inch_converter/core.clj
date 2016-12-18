@@ -37,7 +37,7 @@
 (defn- parse-float
   "Parse a string into a floating point number"
   [s]
-  (Float/parseFloat s))
+  (Double/parseDouble s))
 
 (defn parse-foot-inch
   "Parse a 'foot inch fraction' string and return either nil if the

@@ -1,10 +1,10 @@
----
+----
 **WARNING:** this library is currently under construction
----
+----
 
 # foot-inch-converter 
 
-Library to convert between fractional and decimal foot-inch measurements.
+Simple library to convert between fractional and decimal foot-inch measurements.
 
 
 ## Usage
@@ -35,7 +35,7 @@ Examples of input strings:
 |"0 0 3/64" |fraction of an inch |
 
 
-The returned foot-inch vector contains 4 floating point numbers:
+The returned foot-inch vector contains 4 parsed floating point numbers:
  0. feet
  1. nil or inches
  2. nil or inch fraction numerator
