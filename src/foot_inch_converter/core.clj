@@ -28,12 +28,14 @@
 
 (def ^:const foot-inch-regex
   "Regex that recognizes 'feet inch fraction' numbers, eg: '10 3 5/8'"
-  #"(?x)^\s*
-  (\d+(?:\.\d*)?)
-  (?:\s+
-     (\d+(?:\.\d*)?)
-     (?:\s+(\d+)\/(\d+))?
-    )?"
+  #"(?x)
+  ^\s*                    # optional space at beginning
+  (\d+(?:\.\d*)?)         # capture *required* feet with optional decimal digits
+  (?:\s+                  # spaces separator
+     (\d+(?:\.\d*)?)      # capture optional feet with optional decimal digits
+     (?:\s+(\d+)\/(\d+))? # capture optional fraction numerator and denominator
+    )?                    # inches and fraction are optional
+    \s*    # optional space at end"
   )
 
 (defn parse-float
@@ -103,6 +105,7 @@
   )
 
 (defn convert
+  "Convert an input string into feet inches and fractions of an inch"
   ([input-string] (convert input-string default-fraction-denominator))
   ([input-string denom]
    (if-let [fiv (parse-foot-inch input-string)]
@@ -110,15 +113,27 @@
       :feet            (to-feet fiv)
       :inches          (to-inches fiv)
       :inches-fraction (to-fractional-inches (to-inches fiv) denom)
+      :feet-fraction (divide-by (to-fractional-inches (to-inches fiv) denom) 12)
       }
      )
     )
   )
 
 (defn -main[& args]
-  (do
-    (println "Enter a foot-inch-fraction string")
-    (println (convert (read-line)))
+  "simple REPL for foot-inch conversion"
+  (let [denom! (volatile! default-fraction-denominator)]
+    (do
+      (println "\nEnter a foot-inch-fraction string or 'quit' ...\n")
+      (loop [input (read-line)]
+        (when (not (= "quit" input))
+          (if (= "/" (subs input 0 1))
+            (vreset! denom! (read-string (subs input 1)))
+            (println "/" @denom! " => " (convert input @denom!) "\n")
+            )
+          (recur (read-line))
+          )
+        )
+      )
     )
   )
 
