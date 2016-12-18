@@ -49,7 +49,7 @@ The returned foot-inch vector contains 4 parsed floating point numbers:
 (assert
    (= 1.5
      (conv/to-feet (conv/parse-foot-inch "1 6"))
-   )
+   ))
 ```
 
 #### To decimal inches
@@ -58,7 +58,7 @@ The returned foot-inch vector contains 4 parsed floating point numbers:
 (assert
    (= 18.0
      (conv/to-inches (conv/parse-foot-inch "1 6"))
-   )
+   ))
 ```
 
 

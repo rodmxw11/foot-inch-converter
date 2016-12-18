@@ -24,6 +24,8 @@
 
 (ns foot-inch-converter.core)
 
+(def ^:const default-fraction-denominator 16)
+
 (def ^:const foot-inch-regex
   "Regex that recognizes 'feet inch fraction' numbers, eg: '10 3 5/8'"
   #"(?x)^\s*
@@ -34,14 +36,15 @@
     )?"
   )
 
-(defn- parse-float
+(defn parse-float
   "Parse a string into a floating point number"
   [s]
-  (Double/parseDouble s))
+  (if s (Double/parseDouble s))
+  )
 
 (defn parse-foot-inch
   "Parse a 'foot inch fraction' string and return either nil if the
-  string cannot be parsed or a vector of four floats"
+  string cannot be parsed or a vector of four floats (a foot-inch-vector)"
   [s]
   (if-let [v (re-matches foot-inch-regex s)]
     (->>
@@ -53,53 +56,69 @@
     )
   )
 
-(defn to-feet
-  "Convert a vector of four floats into decimal feet"
-  [[feet inches num denom]]
-  (+
-    feet
-    (if inches (/ inches 12.0) 0.0)
-    (if (and num denom (not (zero? denom))) (/ num denom 12.0) 0.0)
-    )
-  )
-
 (defn to-inches
-  "Convert a vector of floats into decimal inches"
-  [[feet inches num denom]]
+  "Convert a foot-inch-vector into decimal inches"
+  [[feet inches numerator denominator]]
+  {:pre [(number? feet)]}
   (+
     (* feet 12.0)
     (if inches inches 0.0)
-    (if (and num denom (not (zero? denom))) (/ num denom 1.0) 0.0)
+    (if (and numerator denominator (not (zero? denominator))) (/ numerator denominator 1.0) 0.0)
     )
   )
 
-(defn to-fractional-inch
-  "Returns an upper and lower rational with an error"
-  [f denom]
-  {:pre [(<= 0.0 f) (<= 1 denom) (integer? denom)]}
+(defn to-feet
+  "Convert a foot-inch-vector into decimal feet"
+  [fiv]
+  (/ (to-inches fiv) 12.0)
+  )
+
+
+(defn to-fractional-inches
+  "Converts decimal inches to whole inches and an upper and lower rational with an error ratio"
+  ([inches] (to-fractional-inches inches default-fraction-denominator))
+  ([inches denom]
+   {:pre [(<= 0.0 inches) (<= 1 denom) (integer? denom)]}
+   (let [
+         n (int inches)
+         frac (- inches n)
+         low (int (* frac denom))
+         hi (inc low)
+         error (- (* frac denom) low)
+         ]
+     [n (/ low denom) (/ hi denom) error]
+     )
+    )
+  )
+
+(defn divide-by
+  "split the first number in a vector into a quotient and remainder"
+  [[dividend & rest] divisor]
   (let [
-        n (int f)
-        frac (- f n)
-        low (int (* frac denom))
-        hi (inc low)
-        error (- (* frac denom) low)
+        quotient (int (/ dividend divisor))
+        remainder (- dividend (* quotient divisor))
         ]
-    [n (/ low denom) (/ hi denom) error]
+    (into [quotient remainder] rest)
     )
   )
 
-(defn to-feet-fractional-inch
-  [f denom]
-  (let [[inches hi low error] (to-fractional-inch f denom)]
-    [()]
-    ))
-
+(defn convert
+  ([input-string] (convert input-string default-fraction-denominator))
+  ([input-string denom]
+   (if-let [fiv (parse-foot-inch input-string)]
+     {
+      :feet            (to-feet fiv)
+      :inches          (to-inches fiv)
+      :inches-fraction (to-fractional-inches (to-inches fiv) denom)
+      }
+     )
+    )
+  )
 
 (defn -main[& args]
   (do
-    (println "Enter a number")
-    (let [ans (read-line)]
-      (println "You entered: " ans))
+    (println "Enter a foot-inch-fraction string")
+    (println (convert (read-line)))
     )
   )
 

@@ -29,6 +29,10 @@
   "Tolerance for comparing floating point numbers"
   1e-7)
 
+(deftest parse-float-test
+  (is (nil? (parse-float nil)))
+  (is (= 1.5 (parse-float "1.5")))
+  )
 
 (defn float-abs
   "Absolute value of a float"
@@ -46,18 +50,28 @@
     )
   )
 
+(defn vtofloat
+  "converts every element of a numeric vector to float"
+  [v]
+  (->>
+    v
+    (map #(if % (double %)))
+    vec
+    )
+  )
+
 (defn vfloat=
   "Compares two vectors of floats for equality using fuzzy compare"
   [v1 v2]
   (every? true?
-          (map float= v1 v2)
+          (map float= (vtofloat v1) (vtofloat v2))
           )
   )
 
 (deftest regex-test
   (testing "foot-inch-regex basic test"
     (is (re-matches foot-inch-regex "0"))
-    (are [s] (re-matches foot-inch-regex s)
+    (are [input] (re-matches foot-inch-regex input)
              "0"
              "0."
              "1.2"
@@ -72,7 +86,7 @@
 (deftest parsing-test
   (testing "foot-inch-regex digit parsing"
     (is (vfloat= [0.0 nil nil nil] (parse-foot-inch "0")))
-    (are [s v] (vfloat= v (parse-foot-inch s))
+    (are [input fiv] (vfloat= fiv (parse-foot-inch input))
                "0" [0.0 nil nil nil]
                "0." [0.0 nil nil nil]
                "000.000" [0.0 nil nil nil]
@@ -84,7 +98,7 @@
 (deftest to-feet-test
   (testing "to-feet works OK"
     (is (float= 1.0 (to-feet [1.0 nil nil nil])))
-    (are [ft v] (float= ft (to-feet v))
+    (are [feet fiv] (float= feet (to-feet fiv))
                 1.0 [1.0 nil nil nil]
                 1.5 [1.0 6.0 nil nil]
                 1.5 [1.0 0.0 12.0 2.0]
@@ -96,7 +110,7 @@
 (deftest to-inches-test
   (testing "to-inches works OK"
     (is (float= 12.0 (to-inches [1.0 nil nil nil])))
-    (are [inches v] (float= inches (to-inches v))
+    (are [inches fiv] (float= inches (to-inches fiv))
                 1.0 [0.0 1.0 nil nil]
                 0.5 [0.0 0.0 1.0 2.0]
                 24.75 [1.5 6.0 3.0 4.0]
@@ -104,21 +118,11 @@
     )
   )
 
-(defn frac-inch=
-  [[a1 a2 a3 a4][b1 b2 b3 b4]]
-  (and
-    (= a1 b1)
-    (= a2 b2)
-    (= a3 b3)
-    (float= a4 b4)
-    )
-  )
-
-(deftest to-fractional-inch-test
-  (testing "to-fractional-inch works OK"
-    (is (frac-inch= [0 0 1/16 0.0] (to-fractional-inch 0.0 16)))
-    (are [f denom v]
-      (frac-inch= v (to-fractional-inch f denom))
+(deftest to-fractional-inches-test
+  (testing "to-fractional-inches works OK"
+    (is (vfloat= [0 0 1/16 0.0] (to-fractional-inches 0.0 16)))
+    (are [inches fraction-denom fiv]
+      (vfloat= fiv (to-fractional-inches inches fraction-denom))
       8.5 2 [8 1/2 1 0.0]
       8.25 2 [8 0 1/2 0.5]
       8.75 2 [8 1/2 1 0.5]
@@ -133,3 +137,17 @@
       ;; 8.123456 1000000 [8 123456/1000000 123457/1000000 0.0] ;; rounding errors??? !!!
       )
     ))
+
+(deftest divide-by-test
+  (is (vfloat= (divide-by [10.0] 4) [2 2.0]))
+  (are [n divisor answer]
+    (vfloat= (divide-by [n] divisor) answer)
+    0 1 [0 0.0]
+    0.5 1 [0 0.5]
+    1.5 1 [1 0.5]
+    6.5 12 [0 6.5]
+    12.5 12 [1 0.5]
+    18 12 [1 6]
+    )
+  )
+
