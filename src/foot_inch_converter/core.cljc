@@ -28,20 +28,27 @@
 
 (def ^:const foot-inch-regex
   "Regex that recognizes 'feet inch fraction' numbers, eg: '10 3 5/8'"
-  #"(?x)
+  #?(:clj
+     #"(?x)
   ^\s*                    # optional space at beginning
   (\d+(?:\.\d*)?)         # capture *required* feet with optional decimal digits
   (?:\s+                  # spaces separator
      (\d+(?:\.\d*)?)      # capture optional feet with optional decimal digits
-     (?:\s+(\d+)\/(\d+))? # capture optional fraction numerator and denominator
+     (?:\s+(\d+)[/](\d+))? # capture optional fraction numerator and denominator
     )?                    # inches and fraction are optional
-    \s*    # optional space at end"
+    \s*$                  # optional space at end"
+     :cljs ;; same as :clj but without the "extended formatting"
+     ;; BUG: cljs bug with '\/' in clj becoming '\\/' in js
+     ;; #"^\s*(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+)\/(\d+))?)?\s*$"
+     #"^\s*(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+)[/](\d+))?)?\s*$"
+     )
   )
 
 (defn parse-float
   "Parse a string into a floating point number"
   [s]
-  (if s (Double/parseDouble s))
+  (if s
+    (#?(:clj Double/parseDouble :cljs js/parseFloat) s))
   )
 
 (defn parse-foot-inch
@@ -75,7 +82,15 @@
   (/ (to-inches fiv) 12.0)
   )
 
+;; almost verbatim FROM: https://rosettacode.org/wiki/Greatest_common_divisor#Clojure
+(defn gcd-pair
+  "(gcd a b) computes the greatest common divisor of a and b."
+  [[a b] :as pair]
+  (if (zero? b)
+    pair
+    (recur [b (mod a b)])))
 
+;; TODO: cannot use rationals in CLJS
 (defn to-fractional-inches
   "Converts decimal inches to whole inches and an upper and lower rational with an error ratio"
   ([inches] (to-fractional-inches inches default-fraction-denominator))
@@ -113,28 +128,30 @@
       :feet            (to-feet fiv)
       :inches          (to-inches fiv)
       :inches-fraction (to-fractional-inches (to-inches fiv) denom)
-      :feet-fraction (divide-by (to-fractional-inches (to-inches fiv) denom) 12)
+      :feet-inches-fraction (divide-by (to-fractional-inches (to-inches fiv) denom) 12)
       }
      )
     )
   )
 
-(defn -main[& args]
-  "simple REPL for foot-inch conversion"
-  (let [denom! (volatile! default-fraction-denominator)]
-    (do
-      (println "\nEnter a foot-inch-fraction string or 'quit' ...\n")
-      (loop [input (read-line)]
-        (when (not (= "quit" input))
-          (if (= "/" (subs input 0 1))
-            (vreset! denom! (read-string (subs input 1)))
-            (println "/" @denom! " => " (convert input @denom!) "\n")
-            )
-          (recur (read-line))
-          )
-        )
-      )
-    )
-  )
+#?(:clj
+   (defn -main [& args]
+     "simple REPL for foot-inch conversion"
+     (let [denom! (volatile! default-fraction-denominator)]
+       (do
+         (println "\nEnter a foot-inch-fraction string or 'quit' ...\n")
+         (loop [input (read-line)]
+           (when (not (= "quit" input))
+             (if (= "/" (subs input 0 1))
+               (vreset! denom! (read-string (subs input 1)))
+               (println "/" @denom! " => " (convert input @denom!) "\n")
+               )
+             (recur (read-line))
+             )
+           )
+         )
+       )
+     )
+   )
 
 

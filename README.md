@@ -62,6 +62,11 @@ The returned foot-inch vector contains 4 parsed floating point numbers:
 ```
 
 
+## Links
+
+ * [TDD in ClojureScript](https://8thlight.com/blog/eric-smith/2016/10/05/a-testable-clojurescript-setup.html)
+ * [doo:](https://github.com/bensu/doo) A library and Leiningen plugin to run cljs.test in many JS environments.
+ 
 ## License
 
 Copyright © 2016-2017 Rodney Maxwell

@@ -23,15 +23,19 @@
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (ns foot-inch-converter.core-test
-  (:require [clojure.test :refer :all]
-            [foot-inch-converter.core :refer :all]))
+  (:require #?(:cljs [cljs.test :as t]
+               :clj [clojure.test :as t])
+                    [foot-inch-converter.core :as conv]
+                    )
+  )
+
 (def ^:const epsilon
   "Tolerance for comparing floating point numbers"
   1e-7)
 
-(deftest parse-float-test
-  (is (nil? (parse-float nil)))
-  (is (= 1.5 (parse-float "1.5")))
+(t/deftest parse-float-test
+  (t/is (nil? (conv/parse-float nil)))
+  (t/is (= 1.5 (conv/parse-float "1.5")))
   )
 
 (defn float-abs
@@ -53,11 +57,17 @@
 (defn vtofloat
   "converts every element of a numeric vector to float"
   [v]
-  (->>
-    v
-    (map #(if % (double %)))
-    vec
-    )
+  ;; in Javascript *every* number is already a Double
+      #?(
+         :clj
+          (->>
+            v
+            (map #(if % (double %)))
+            vec
+          )
+         :cljs
+         v
+         )
   )
 
 (defn vfloat=
@@ -68,10 +78,10 @@
           )
   )
 
-(deftest regex-test
-  (testing "foot-inch-regex basic test"
-    (is (re-matches foot-inch-regex "0"))
-    (are [input] (re-matches foot-inch-regex input)
+(t/deftest regex-test
+  (t/testing "foot-inch-regex basic test"
+    (t/is (re-matches conv/foot-inch-regex "0"))
+    (t/are [input] (re-matches conv/foot-inch-regex input)
              "0"
              "0."
              "1.2"
@@ -83,10 +93,10 @@
              )
     ))
 
-(deftest parsing-test
-  (testing "foot-inch-regex digit parsing"
-    (is (vfloat= [0.0 nil nil nil] (parse-foot-inch "0")))
-    (are [input fiv] (vfloat= fiv (parse-foot-inch input))
+(t/deftest parsing-test
+  (t/testing "foot-inch-regex digit parsing"
+    (t/is (vfloat= [0.0 nil nil nil] (conv/parse-foot-inch "0")))
+    (t/are [input fiv] (vfloat= fiv (conv/parse-foot-inch input))
                "0" [0.0 nil nil nil]
                "0." [0.0 nil nil nil]
                "000.000" [0.0 nil nil nil]
@@ -95,10 +105,10 @@
                )
     ))
 
-(deftest to-feet-test
-  (testing "to-feet works OK"
-    (is (float= 1.0 (to-feet [1.0 nil nil nil])))
-    (are [feet fiv] (float= feet (to-feet fiv))
+(t/deftest to-feet-test
+  (t/testing "to-feet works OK"
+    (t/is (float= 1.0 (conv/to-feet [1.0 nil nil nil])))
+    (t/are [feet fiv] (float= feet (conv/to-feet fiv))
                 1.0 [1.0 nil nil nil]
                 1.5 [1.0 6.0 nil nil]
                 1.5 [1.0 0.0 12.0 2.0]
@@ -107,10 +117,10 @@
                 )
     ))
 
-(deftest to-inches-test
-  (testing "to-inches works OK"
-    (is (float= 12.0 (to-inches [1.0 nil nil nil])))
-    (are [inches fiv] (float= inches (to-inches fiv))
+(t/deftest to-inches-test
+  (t/testing "to-inches works OK"
+    (t/is (float= 12.0 (conv/to-inches [1.0 nil nil nil])))
+    (t/are [inches fiv] (float= inches (conv/to-inches fiv))
                 1.0 [0.0 1.0 nil nil]
                 0.5 [0.0 0.0 1.0 2.0]
                 24.75 [1.5 6.0 3.0 4.0]
@@ -118,11 +128,12 @@
     )
   )
 
-(deftest to-fractional-inches-test
-  (testing "to-fractional-inches works OK"
-    (is (vfloat= [0 0 1/16 0.0] (to-fractional-inches 0.0 16)))
-    (are [inches fraction-denom fiv]
-      (vfloat= fiv (to-fractional-inches inches fraction-denom))
+;; TODO: cannot use rationals in CLJS
+#_(t/deftest to-fractional-inches-test
+  (t/testing "to-fractional-inches works OK"
+    (t/is (vfloat= [0 0 1/16 0.0] (conv/to-fractional-inches 0.0 16)))
+    (t/are [inches fraction-denom fiv]
+      (vfloat= fiv (conv/to-fractional-inches inches fraction-denom))
       8.5 2 [8 1/2 1 0.0]
       8.25 2 [8 0 1/2 0.5]
       8.75 2 [8 1/2 1 0.5]
@@ -138,10 +149,10 @@
       )
     ))
 
-(deftest divide-by-test
-  (is (vfloat= (divide-by [10.0] 4) [2 2.0]))
-  (are [n divisor answer]
-    (vfloat= (divide-by [n] divisor) answer)
+(t/deftest divide-by-test
+  (t/is (vfloat= (conv/divide-by [10.0] 4) [2 2.0]))
+  (t/are [n divisor answer]
+    (vfloat= (conv/divide-by [n] divisor) answer)
     0 1 [0 0.0]
     0.5 1 [0 0.5]
     1.5 1 [1 0.5]
@@ -151,3 +162,14 @@
     )
   )
 
+#?(:cljs
+   (do
+     (enable-console-print!)
+     (set! *main-cli-fn* #(t/run-tests))))
+
+#?(:cljs
+   (defmethod t/report [:cljs.test/default :end-run-tests]
+     [m]
+     (if (t/successful? m)
+       (set! (.-exitCode js/process) 0)
+       (set! (.-exitCode js/process) 1))))
