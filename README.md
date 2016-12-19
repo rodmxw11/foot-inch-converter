@@ -14,10 +14,10 @@ Simple library to convert between fractional and decimal foot-inch measurements.
 (require '[foot-inch-converter.core :as conv])
 ```
 
-### parse a foot-inch text string
+### parse a foot-inch text string into a foot-inch vector
 ```clojure
-(def conv-vec (conv/parse-foot-inch "1.23 4.56 3/4"))
-(assert (= conv-vec [1.23 4.56 3.0 4.0]))
+(def foot-inch-vec (conv/parse-foot-inch "1.23 4.56 3/4"))
+(assert (= foot-inch-vec [1.23 4.56 3.0 4.0]))
 ```
 
 **conv/parse-foot-inch** takes a string with one to three numbers:
@@ -35,13 +35,13 @@ Examples of input strings:
 |"0 0 3/64" |fraction of an inch |
 
 
-The returned foot-inch vector contains 4 parsed floating point numbers:
+The returned foot-inch vector contains the 4 parsed floating point numbers:
  0. feet
  1. nil or inches
  2. nil or inch fraction numerator
  3. nil or inch fraction denominator 
 
-### Convert the foot-inch vector
+### Convert the foot-inch vector ...
 
 #### To decimal feet
 
@@ -61,7 +61,64 @@ The returned foot-inch vector contains 4 parsed floating point numbers:
    ))
 ```
 
+### To whole inches with fractional inch information
 
+```clojure
+(assert
+   (= [8 [1 10] [1 5] 0.23456]
+      (conv/to-inches-fractional 
+         (conv/parse-foot-inch "0 8.123456")
+         10
+      )
+   )
+)
+```
+
+**to-inches-fractional** takes two parameters:
+ 1. The foot-inch vector returned from **parse-foot-inch**
+ 2. (optional) The numerator of the desired inch fractions.  
+ Defaults to 16, giving sixteenths of an inch.
+ 
+The vector returned by **to-inches-fractional** has the following 4 elements:
+ 1. the whole number of inches
+ 2. A *lower fractional bound* for the fractional inch, represented as a 
+ vector containing a numerator denominator pair.  The actual input length
+ will be greater than or equal to this fraction. 
+ 3. An *upper fractional bound* for the fractional inch as a vector pair.
+ The actual input length will be less than or equal to this fraction.
+ 4. An *interpolation factor* that indicates where the actual input
+ length occurs between the lower and upper fractional bounds. Always between
+ zero and one.  0.0 means that the actual length is exactly the lower bound
+ whereas 0.99999 would mean that the actual length is extremely close
+ to the upper bounds.  0.5 would mean that the actual length is exactly
+ halfway between the lower and upper bounds.
+ 
+### To whole feet and inches with fractional inch information
+
+```clojure
+(assert
+   (= [2 8 [1 10] [1 5] 0.23456]
+      (conv/to-feet-fractional 
+         (conv/parse-foot-inch "0 32.123456")
+         10
+      )
+   )
+)
+```
+
+**to-feet-fractional** takes two parameters:
+ 1. The foot-inch vector returned from **parse-foot-inch**
+ 2. (optional) The numerator of the desired inch fractions.  
+ Defaults to 16, giving sixteenths of an inch.
+
+
+The vector returned by **to-feet-fractional** has the following 5 elements:
+ 1. The whole number of feet
+ 2. Whole inches
+ 3. lower fractional bound
+ 4. upper fractional bound
+ 5. interpolation factor
+ 
 ## Links
 
  * [TDD in ClojureScript](https://8thlight.com/blog/eric-smith/2016/10/05/a-testable-clojurescript-setup.html)

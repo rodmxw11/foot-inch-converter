@@ -82,29 +82,24 @@
   (/ (to-inches fiv) 12.0)
   )
 
-;; almost verbatim FROM: https://rosettacode.org/wiki/Greatest_common_divisor#Clojure
-(defn gcd-pair
+;; verbatim FROM: https://rosettacode.org/wiki/Greatest_common_divisor#Clojure
+(defn gcd
   "(gcd a b) computes the greatest common divisor of a and b."
-  [[a b] :as pair]
+  [a b]
   (if (zero? b)
-    pair
-    (recur [b (mod a b)])))
+    a
+    (recur b (mod a b))))
 
-;; TODO: cannot use rationals in CLJS
-(defn to-fractional-inches
-  "Converts decimal inches to whole inches and an upper and lower rational with an error ratio"
-  ([inches] (to-fractional-inches inches default-fraction-denominator))
-  ([inches denom]
-   {:pre [(<= 0.0 inches) (<= 1 denom) (integer? denom)]}
-   (let [
-         n (int inches)
-         frac (- inches n)
-         low (int (* frac denom))
-         hi (inc low)
-         error (- (* frac denom) low)
-         ]
-     [n (/ low denom) (/ hi denom) error]
-     )
+(defn simplify-ratio
+  "Simplify a ratio"
+  [[numerator denominator :as ratio]]
+  {:pre [(not (zero? denominator))]}
+  (let [divisor (gcd numerator denominator)]
+    (case divisor
+      0 [0 1]
+      1 ratio
+      [(/ numerator divisor) (/ denominator divisor)]
+      )
     )
   )
 
@@ -119,6 +114,41 @@
     )
   )
 
+(defn fractionalize-inches
+  "Converts decimal inches to whole inches and an upper and lower rational with an error ratio"
+  ([inches-decimal] (fractionalize-inches inches-decimal default-fraction-denominator))
+  ([inches-decimal fraction-denominator]
+   {:pre [(<= 0.0 inches-decimal) (<= 1 fraction-denominator) (integer? fraction-denominator)]}
+   (let [
+         n (int inches-decimal)
+         frac (- inches-decimal n)
+         low (int (* frac fraction-denominator))
+         high (inc low)
+         error (- (* frac fraction-denominator) low)
+         low-ratio (simplify-ratio [low fraction-denominator])
+         high-ratio (simplify-ratio [high fraction-denominator])
+         ]
+     [n low-ratio high-ratio error]
+     )
+    )
+  )
+
+(defn to-inches-fractional
+  "returns whole inches and fractional inch information"
+  ([fiv] (to-inches-fractional fiv default-fraction-denominator))
+  ([fiv fraction-denominator]
+   (fractionalize-inches (to-inches fiv) fraction-denominator)
+    )
+  )
+
+(defn to-feet-fractional
+  "returns whole feet and inches along with fractional inch information"
+  ([fiv] (to-feet-fractional fiv default-fraction-denominator))
+  ([fiv fraction-denominator]
+   (divide-by (to-inches-fractional fiv) fraction-denominator)
+    )
+  )
+
 (defn convert
   "Convert an input string into feet inches and fractions of an inch"
   ([input-string] (convert input-string default-fraction-denominator))
@@ -127,8 +157,8 @@
      {
       :feet            (to-feet fiv)
       :inches          (to-inches fiv)
-      :inches-fraction (to-fractional-inches (to-inches fiv) denom)
-      :feet-inches-fraction (divide-by (to-fractional-inches (to-inches fiv) denom) 12)
+      :inches-fraction (fractionalize-inches (to-inches fiv) denom)
+      :feet-inches-fraction (divide-by (fractionalize-inches (to-inches fiv) denom) 12)
       }
      )
     )
