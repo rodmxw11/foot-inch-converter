@@ -26,8 +26,16 @@
 
 (def ^:const default-fraction-denominator 16)
 
-(def ^:const foot-inch-regex
-  "Regex that recognizes 'feet inch fraction' numbers, eg: '10 3 5/8'"
+(def ^:const meters-per-inch
+  "Number of meters per inch"
+  (/ 25.4 1000))
+
+(def  ^:const zero-ratio
+  "A standard representation of any zero ratio  (0/N)==[0 N]; simplifies testing!"
+  [0 1])
+
+(def ^:const feet-inches-regex
+  "Regex that recognizes numbers in a 'feet inches fraction' string, eg: '10 3 5/8'"
   #?(:clj
      #"(?x)
   ^\s*                    # optional space at beginning
@@ -51,11 +59,11 @@
     (#?(:clj Double/parseDouble :cljs js/parseFloat) s))
   )
 
-(defn parse-foot-inch
-  "Parse a 'foot inch fraction' string and return either nil if the
-  string cannot be parsed or a vector of four floats (a foot-inch-vector)"
-  [s]
-  (if-let [v (re-matches foot-inch-regex s)]
+(defn parse-feet-inches
+  "Parse a 'feet inches fraction' string and return either nil if the
+  string cannot be parsed or a vector of four floats (a feet-inches-vector)"
+  [input]
+  (if-let [v (re-matches feet-inches-regex input)]
     (->>
       v
       (drop 1)
@@ -65,21 +73,53 @@
     )
   )
 
-(defn to-inches
-  "Convert a foot-inch-vector into decimal inches"
-  [[feet inches numerator denominator]]
+(defn feet-inches-vector->meters
+  "Convert a feet-inches-vector into meters"
+  [[feet inches numerator denominator :as feet-inches-vector]]
   {:pre [(number? feet)]}
-  (+
-    (* feet 12.0)
-    (if inches inches 0.0)
-    (if (and numerator denominator (not (zero? denominator))) (/ numerator denominator 1.0) 0.0)
+  (*
+    meters-per-inch
+    (+
+      (* feet 12.0)
+      (if inches inches 0.0)
+      (if (and numerator denominator (not (zero? denominator))) (/ numerator denominator 1.0) 0.0)
+      )
     )
   )
 
-(defn to-feet
-  "Convert a foot-inch-vector into decimal feet"
-  [fiv]
-  (/ (to-inches fiv) 12.0)
+(defn inches->meters
+  "Convert decimal inches to meters"
+  [inches]
+  (feet-inches-vector->meters [0 inches])
+  )
+
+(defn feet->meters
+  "Convert decimal feet to meters"
+  [feet]
+  (feet-inches-vector->meters [feet])
+  )
+
+(defn parse-feet-inches->meters
+  "Parse a 'feet inches fraction' string and return either a meters value
+  or nil if the input string cannot be parsed"
+  [input]
+  (if-let [fiv (parse-feet-inches input)]
+    (feet-inches-vector->meters fiv)
+    )
+  )
+
+(defn meters->inches
+  "Converts meters into decimal inches"
+  [meters]
+  {:pre [(number? meters)]}
+  (/ meters meters-per-inch)
+  )
+
+(defn meters->feet
+  "Convert meters into decimal feet"
+  [meters]
+  {:pre [(number? meters)]}
+  (/ (meters->inches meters) 12.0)
   )
 
 ;; verbatim FROM: https://rosettacode.org/wiki/Greatest_common_divisor#Clojure
@@ -96,7 +136,7 @@
   {:pre [(not (zero? denominator))]}
   (let [divisor (gcd numerator denominator)]
     (case divisor
-      0 [0 1]
+      0 zero-ratio
       1 ratio
       [(/ numerator divisor) (/ denominator divisor)]
       )
@@ -114,12 +154,13 @@
     )
   )
 
-(defn fractionalize-inches
-  "Converts decimal inches to whole inches and an upper and lower rational with an error ratio"
-  ([inches-decimal] (fractionalize-inches inches-decimal default-fraction-denominator))
-  ([inches-decimal fraction-denominator]
-   {:pre [(<= 0.0 inches-decimal) (<= 1 fraction-denominator) (integer? fraction-denominator)]}
+(defn meters->fractional-inches
+  "Converts meters to whole inches and an upper and lower fraction with an error ratio"
+  ([meters] (meters->fractional-inches meters default-fraction-denominator))
+  ([meters fraction-denominator]
+   {:pre [(<= 0.0 meters) (<= 1 fraction-denominator) (integer? fraction-denominator)]}
    (let [
+         inches-decimal (meters->inches meters)
          n (int inches-decimal)
          frac (- inches-decimal n)
          low (int (* frac fraction-denominator))
@@ -133,19 +174,11 @@
     )
   )
 
-(defn to-inches-fractional
-  "returns whole inches and fractional inch information"
-  ([fiv] (to-inches-fractional fiv default-fraction-denominator))
-  ([fiv fraction-denominator]
-   (fractionalize-inches (to-inches fiv) fraction-denominator)
-    )
-  )
-
-(defn to-feet-fractional
+(defn meters->fractional-feet
   "returns whole feet and inches along with fractional inch information"
-  ([fiv] (to-feet-fractional fiv default-fraction-denominator))
-  ([fiv fraction-denominator]
-   (divide-by (to-inches-fractional fiv) fraction-denominator)
+  ([meters] (meters->fractional-feet meters default-fraction-denominator))
+  ([meters fraction-denominator]
+   (divide-by (meters->fractional-inches meters) fraction-denominator)
     )
   )
 
@@ -153,12 +186,13 @@
   "Convert an input string into feet inches and fractions of an inch"
   ([input-string] (convert input-string default-fraction-denominator))
   ([input-string denom]
-   (if-let [fiv (parse-foot-inch input-string)]
+   (if-let [meters (parse-feet-inches->meters input-string)]
      {
-      :feet            (to-feet fiv)
-      :inches          (to-inches fiv)
-      :inches-fraction (fractionalize-inches (to-inches fiv) denom)
-      :feet-inches-fraction (divide-by (fractionalize-inches (to-inches fiv) denom) 12)
+      :meters          meters
+      :feet            (meters->feet meters)
+      :inches          (meters->inches meters)
+      :inches-fraction (meters->fractional-inches meters)
+      :feet-fraction   (meters->fractional-feet meters)
       }
      )
     )

@@ -9,18 +9,31 @@ Simple library to convert between fractional and decimal foot-inch measurements.
 
 ## Usage
 
-### First, **require** the library
+### **require** the library
 ```clojure
-(require '[foot-inch-converter.core :as conv])
+(ns my.namespace
+   (:require [foot-inch-converter.core :as conv])
+  )
 ```
 
-### parse a foot-inch text string into a foot-inch vector
+### Convert feet and inches to meters
+
+#### Decimal feet to meters
+
 ```clojure
-(def foot-inch-vec (conv/parse-foot-inch "1.23 4.56 3/4"))
-(assert (= foot-inch-vec [1.23 4.56 3.0 4.0]))
+(assert
+   (= 123233
+     (conv/feet->meters 1.0))
+```
+#### parse a feet-inches-fraction text string into meters
+```clojure
+(assert
+   (= 0.509778 ;; meters
+      (conv/parse-feet-inches->meters "1.23 4.56 3/4")
+      ))
 ```
 
-**conv/parse-foot-inch** takes a string with one to three numbers:
+**parse-feet-inches->meters** takes a string with one to three numbers:
  1. **feet** (required) as either a whole or decimal number
  2. **inches** (optional) as either a whole or decimal number
  3. **fraction** (optional) as two whole numbers separated by a forward slash character
@@ -34,14 +47,7 @@ Examples of input strings:
 |"5 6 3/4" |feet inches fraction |
 |"0 0 3/64" |fraction of an inch |
 
-
-The returned foot-inch vector contains the 4 parsed floating point numbers:
- 0. feet
- 1. nil or inches
- 2. nil or inch fraction numerator
- 3. nil or inch fraction denominator 
-
-### Convert the foot-inch vector ...
+### Convert meters to feet and inches ...
 
 #### To decimal feet
 

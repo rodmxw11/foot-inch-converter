@@ -27,6 +27,9 @@
                :clj [clojure.test :as t])
                     [foot-inch-converter.core :as conv]
                     )
+  #?(:cljs
+     (:require-macros [cljs.core :refer [exists?]])
+     )
   )
 
 (def ^:const epsilon
@@ -80,8 +83,8 @@
 
 (t/deftest regex-test
   (t/testing "foot-inch-regex basic test"
-    (t/is (re-matches conv/foot-inch-regex "0"))
-    (t/are [input] (re-matches conv/foot-inch-regex input)
+    (t/is (re-matches conv/feet-inches-regex "0"))
+    (t/are [input] (re-matches conv/feet-inches-regex input)
              "0"
              "0."
              "1.2"
@@ -95,8 +98,8 @@
 
 (t/deftest parsing-test
   (t/testing "foot-inch-regex digit parsing"
-    (t/is (vfloat= [0.0 nil nil nil] (conv/parse-foot-inch "0")))
-    (t/are [input fiv] (vfloat= fiv (conv/parse-foot-inch input))
+    (t/is (vfloat= [0.0 nil nil nil] (conv/parse-feet-inches "0")))
+    (t/are [input fiv] (vfloat= fiv (conv/parse-feet-inches input))
                "0" [0.0 nil nil nil]
                "0." [0.0 nil nil nil]
                "000.000" [0.0 nil nil nil]
@@ -105,10 +108,10 @@
                )
     ))
 
-(t/deftest to-feet-test
-  (t/testing "to-feet works OK"
-    (t/is (float= 1.0 (conv/to-feet [1.0 nil nil nil])))
-    (t/are [feet fiv] (float= feet (conv/to-feet fiv))
+(t/deftest meters->feet-test
+  (t/testing "meters->feet works OK"
+    (t/is (float= 1.0 (-> [1.0 nil nil nil] conv/feet-inches-vector->meters conv/meters->feet)))
+    (t/are [feet fiv] (float= feet (-> fiv conv/feet-inches-vector->meters conv/meters->feet))
                 1.0 [1.0 nil nil nil]
                 1.5 [1.0 6.0 nil nil]
                 1.5 [1.0 0.0 12.0 2.0]
@@ -117,10 +120,10 @@
                 )
     ))
 
-(t/deftest to-inches-test
-  (t/testing "to-inches works OK"
-    (t/is (float= 12.0 (conv/to-inches [1.0 nil nil nil])))
-    (t/are [inches fiv] (float= inches (conv/to-inches fiv))
+(t/deftest meters->inches-test
+  (t/testing "meters->inches works OK"
+    (t/is (float= 12.0 (-> [1.0 nil nil nil] conv/feet-inches-vector->meters conv/meters->inches)))
+    (t/are [inches fiv] (float= inches (-> fiv conv/feet-inches-vector->meters conv/meters->inches))
                 1.0 [0.0 1.0 nil nil]
                 0.5 [0.0 0.0 1.0 2.0]
                 24.75 [1.5 6.0 3.0 4.0]
@@ -130,7 +133,7 @@
 
 (t/deftest simplify-ratio-test
   (t/is (= [1 2] (conv/simplify-ratio [2 4])))
-  (t/is (= [0 1] (conv/simplify-ratio [0 22245])))
+  (t/is (= conv/zero-ratio (conv/simplify-ratio [0 22245])))
   (t/are [expected ratio]
     (let [[rnumer rdenom] ratio
           [enumer edenom] expected
@@ -165,11 +168,11 @@
     )
   )
 
-(t/deftest fractionalize-inches-test
-  (t/testing "to-fractional-inches works OK"
-    (t/is (fractionv= [0 [0 1] [1 16] 0.0] (conv/fractionalize-inches 0.0 16)))
+(t/deftest meters->fractional-inches-test
+  (t/testing "meters->fractional-inches works OK"
+    (t/is (fractionv= [0 [0 1] [1 16] 0.0] (conv/meters->fractional-inches (conv/inches->meters 0.0) 16)))
     (t/are [inches fraction-denom fiv]
-      (fractionv= fiv (conv/fractionalize-inches inches fraction-denom))
+      (fractionv= fiv (conv/meters->fractional-inches (conv/inches->meters inches) fraction-denom))
       8.5 2 [8 [1 2] [1 1] 0.0]
       8.25 2 [8 [0 1] [1 2] 0.5]
       8.75 2 [8 [1 2] [1 1] 0.5]
@@ -198,6 +201,11 @@
     )
   )
 
+(t/deftest meters-per-foot-test
+    (t/is (float= 0.3048 (conv/feet->meters 1.0)))
+    (t/is (float= 0.0254 (conv/inches->meters 1.0)))
+  )
+
 #?(:cljs
    (do
      (enable-console-print!)
@@ -206,6 +214,6 @@
 #?(:cljs
    (defmethod t/report [:cljs.test/default :end-run-tests]
      [m]
-     (if (t/successful? m)
+     (if (and (exists? js/process) (t/successful? m))
        (set! (.-exitCode js/process) 0)
        (set! (.-exitCode js/process) 1))))
