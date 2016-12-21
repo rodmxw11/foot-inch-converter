@@ -1,7 +1,3 @@
-----
-**WARNING:** this library is currently under construction
-----
-
 # foot-inch-converter 
 
 Simple library to convert between fractional and decimal foot-inch measurements.

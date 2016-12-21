@@ -34,7 +34,7 @@
 
 (def ^:const epsilon
   "Tolerance for comparing floating point numbers"
-  1e-7)
+  1e-9)
 
 (t/deftest parse-float-test
   (t/is (nil? (conv/parse-float nil)))
@@ -81,7 +81,7 @@
           )
   )
 
-(t/deftest regex-test
+(t/deftest feet-inches-regex-test
   (t/testing "foot-inch-regex basic test"
     (t/is (re-matches conv/feet-inches-regex "0"))
     (t/are [input] (re-matches conv/feet-inches-regex input)
@@ -96,7 +96,7 @@
              )
     ))
 
-(t/deftest parsing-test
+(t/deftest parse-feet-inches-test
   (t/testing "foot-inch-regex digit parsing"
     (t/is (vfloat= [0.0 nil nil nil] (conv/parse-feet-inches "0")))
     (t/are [input fiv] (vfloat= fiv (conv/parse-feet-inches input))
@@ -108,17 +108,13 @@
                )
     ))
 
-(t/deftest meters->feet-test
-  (t/testing "meters->feet works OK"
-    (t/is (float= 1.0 (-> [1.0 nil nil nil] conv/feet-inches-vector->meters conv/meters->feet)))
-    (t/are [feet fiv] (float= feet (-> fiv conv/feet-inches-vector->meters conv/meters->feet))
-                1.0 [1.0 nil nil nil]
-                1.5 [1.0 6.0 nil nil]
-                1.5 [1.0 0.0 12.0 2.0]
-                2.0 [1.0 6.0 12.0 2.0]
-                0.0 [0.0 nil nil nil]
-                )
-    ))
+(t/deftest inches->meters-test
+  (t/is (float= 25.4e-3 (conv/inches->meters 1.0)))
+  )
+
+(t/deftest feet->meters-test
+  (t/is (float= 0.3048 (conv/feet->meters 1.0)))
+  )
 
 (t/deftest meters->inches-test
   (t/testing "meters->inches works OK"
@@ -130,6 +126,18 @@
                   )
     )
   )
+
+(t/deftest meters->feet-test
+  (t/testing "meters->feet works OK"
+    (t/is (float= 1.0 (-> [1.0 nil nil nil] conv/feet-inches-vector->meters conv/meters->feet)))
+    (t/are [feet fiv] (float= feet (-> fiv conv/feet-inches-vector->meters conv/meters->feet))
+                      1.0 [1.0 nil nil nil]
+                      1.5 [1.0 6.0 nil nil]
+                      1.5 [1.0 0.0 12.0 2.0]
+                      2.0 [1.0 6.0 12.0 2.0]
+                      0.0 [0.0 nil nil nil]
+                      )
+    ))
 
 (t/deftest simplify-ratio-test
   (t/is (= [1 2] (conv/simplify-ratio [2 4])))
@@ -155,7 +163,7 @@
   (= (conv/simplify-ratio ratio1) (conv/simplify-ratio ratio2))
   )
 
-(defn fractionv=
+(defn inches-fractionv=
   [
    [inches1 low-fraction1 high-fraction1 error-ratio1]
    [inches2 low-fraction2 high-fraction2 error-ratio2]
@@ -168,25 +176,38 @@
     )
   )
 
+(defn feet-fractionv=
+  [
+   [feet1 & rest1]
+   [feet2 & rest2]
+   ]
+  (and
+    (float= feet1 feet2)
+    (inches-fractionv= rest1 rest2)
+    )
+  )
+
 (t/deftest meters->fractional-inches-test
   (t/testing "meters->fractional-inches works OK"
-    (t/is (fractionv= [0 [0 1] [1 16] 0.0] (conv/meters->fractional-inches (conv/inches->meters 0.0) 16)))
-    (t/are [inches fraction-denom fiv]
-      (fractionv= fiv (conv/meters->fractional-inches (conv/inches->meters inches) fraction-denom))
-      8.5 2 [8 [1 2] [1 1] 0.0]
-      8.25 2 [8 [0 1] [1 2] 0.5]
-      8.75 2 [8 [1 2] [1 1] 0.5]
-      8.9999999 2 [8 [1 2] [1 1] 0.9999999999]
-      8.0000001 2 [8 [0 1] [1 2] 0.0]
-      8.225 1 [8 [0 1] [1 1] 0.225]
-      8.123456 10 [8 [1 10] [2 10] 0.23456]
-      8.123456 100 [8 [12 100] [13 100] 0.3456]
-      8.123456 1000 [8 [123 1000] [124 1000] 0.456]
-      8.123456 10000 [8 [1234 10000] [1235 10000] 0.56]
-      8.123456 100000 [8 [12345 100000] [12346 100000] 0.6]
-      ;; 8.123456 1000000 [8 [123456 1000000] [123457 1000000] 0.0] ;; rounding errors??? !!!
-      )
-    ))
+    (t/is (inches-fractionv= [0 [0 1] [1 16] 0.0] (conv/meters->fractional-inches (conv/inches->meters 0.0) 16)))
+    (t/is (inches-fractionv= [0 [0 1] [1 16] 0.0] (conv/meters->fractional-inches (conv/inches->meters 0.0)))
+          (t/are [inches fraction-denom fiv]
+            (inches-fractionv= fiv (conv/meters->fractional-inches (conv/inches->meters inches) fraction-denom))
+            8.5 2 [8 [1 2] [1 1] 0.0]
+            8.25 2 [8 [0 1] [1 2] 0.5]
+            8.75 2 [8 [1 2] [1 1] 0.5]
+            8.9999999 2 [8 [1 2] [1 1] 0.9999999999]
+            8.0000001 2 [8 [0 1] [1 2] 0.0]
+            8.225 1 [8 [0 1] [1 1] 0.225]
+            8.123456 10 [8 [1 10] [2 10] 0.23456]
+            8.123456 100 [8 [12 100] [13 100] 0.3456]
+            8.123456 1000 [8 [123 1000] [124 1000] 0.456]
+            8.123456 10000 [8 [1234 10000] [1235 10000] 0.56]
+            8.123456 100000 [8 [12345 100000] [12346 100000] 0.6]
+            ;; 8.123456 1000000 [8 [123456 1000000] [123457 1000000] 0.0] ;; rounding errors??? !!!
+            )
+          ))
+  )
 
 (t/deftest divide-by-test
   (t/is (vfloat= (conv/divide-by [10.0] 4) [2 2.0]))
@@ -201,10 +222,13 @@
     )
   )
 
-(t/deftest meters-per-foot-test
-    (t/is (float= 0.3048 (conv/feet->meters 1.0)))
-    (t/is (float= 0.0254 (conv/inches->meters 1.0)))
+(t/deftest meters->fraction-feet-test
+  (t/is (feet-fractionv= [0 0 [0 1] [1 16] 0.0] (conv/meters->fractional-feet (conv/inches->meters 0.0) 16)))
+  (t/is (feet-fractionv= [0 0 [0 1] [1 16] 0.0] (conv/meters->fractional-feet (conv/inches->meters 0.0))))
+  (t/is (feet-fractionv= [2 8 [12 100] [13 100] 0.3456] (conv/meters->fractional-feet (conv/inches->meters 8.123456) 100)))
   )
+
+
 
 #?(:cljs
    (do

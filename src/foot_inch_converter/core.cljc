@@ -75,7 +75,7 @@
 
 (defn feet-inches-vector->meters
   "Convert a feet-inches-vector into meters"
-  [[feet inches numerator denominator :as feet-inches-vector]]
+  [[feet inches numerator denominator]]
   {:pre [(number? feet)]}
   (*
     meters-per-inch
@@ -182,17 +182,51 @@
     )
   )
 
+(defn repl-parse-input->meters
+  "Parse repl input strings as 'mm', 'm', or feet inches fraction"
+  [input-string]
+  (try
+    (cond
+
+      ;; "mm 2.223" -- input millimeters
+      (and
+        (< 2 (count input-string))
+        (= "mm" (subs input-string 0 2)))
+      (/
+        (parse-float (subs input-string 2))
+        1000.0
+        )
+
+      ;; "m  33.332" -- inputs meters
+      (and
+        (< 1 (count input-string))
+        (= "m" (subs input-string 0 1)))
+      (parse-float (subs input-string 1))
+
+      ;; else input feet inches fraction
+      :else (parse-feet-inches->meters input-string)
+      ) ;;endcond
+    (catch #?(
+              :clj Exception
+              :cljs :default
+              )
+           error
+         nil ;; return nil if parse-float throws exception
+      ) ;;endcatch
+    ) ;;endtry
+  )
+
 (defn convert
   "Convert an input string into feet inches and fractions of an inch"
   ([input-string] (convert input-string default-fraction-denominator))
   ([input-string denom]
-   (if-let [meters (parse-feet-inches->meters input-string)]
+   (if-let [meters (repl-parse-input->meters input-string)]
      {
       :meters          meters
       :feet            (meters->feet meters)
       :inches          (meters->inches meters)
-      :inches-fraction (meters->fractional-inches meters)
-      :feet-fraction   (meters->fractional-feet meters)
+      :inches-fraction (meters->fractional-inches meters denom)
+      :feet-fraction   (meters->fractional-feet meters denom)
       }
      )
     )
@@ -203,19 +237,22 @@
      "simple REPL for foot-inch conversion"
      (let [denom! (volatile! default-fraction-denominator)]
        (do
-         (println "\nEnter a foot-inch-fraction string or 'quit' ...\n")
+         (println "\nEnter a foot-inch-fraction strings or 'quit' ...\n")
          (loop [input (read-line)]
            (when (not (= "quit" input))
              (if (= "/" (subs input 0 1))
-               (vreset! denom! (read-string (subs input 1)))
-               (println "/" @denom! " => " (convert input @denom!) "\n")
+               (do
+                 (vreset! denom! (read-string (subs input 1)))
+                 (println "Fractional denominator now set to: " @denom! "\n")
+                 )
+               (println "1/" @denom! "=>" (convert input @denom!) "\n")
                )
              (recur (read-line))
-             )
-           )
-         )
-       )
-     )
-   )
+             ) ;;endwhen
+           ) ;;endloop
+         ) ;;endo
+       ) ;;endlet
+     ) ;;endefn
+   ) ;;end#?
 
 
