@@ -178,7 +178,7 @@
   "returns whole feet and inches along with fractional inch information"
   ([meters] (meters->fractional-feet meters default-fraction-denominator))
   ([meters fraction-denominator]
-   (divide-by (meters->fractional-inches meters) fraction-denominator)
+   (divide-by (meters->fractional-inches meters fraction-denominator) 12)
     )
   )
 
