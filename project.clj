@@ -61,7 +61,7 @@
                                    :pretty-print true
                                    }
                         }
-                       {
+                       #_{
                         ;; lein doo nashorn test-nashorn once
                         :id "test-nashorn"
                         :source-paths ["src" "test"]
@@ -107,12 +107,12 @@
                         :source-paths ["src" "test"]
                         :compiler {
                                    :main runners.doo
-                                   :optimizations :simple
+                                   :optimizations :none
                                    :target :nodejs
                                    :output-to "node-out/tests.js"
                                    }
                         }
-                       {
+                       #_{
                         :id "test-chrome"
                         :source-paths ["src" "test"]
                         :compiler {
@@ -122,7 +122,7 @@
                                    :output-to "chrome-out/tests.js"
                                    }
                         }
-                       {
+                       #_{
                         :id "test-chrome-headless"
                         :source-paths ["src" "test"]
                         :compiler {
@@ -132,7 +132,7 @@
                                    :output-to "chrome-headless-out/tests.js"
                                    }
                         }
-                       {
+                       #_{
                         :id "test-firefox"
                         :source-paths ["src" "test"]
                         :compiler {
@@ -142,7 +142,7 @@
                                    :output-to "firefox-out/tests.js"
                                    }
                         }
-                       {
+                       #_{
                         :id "test-firefox-headless"
                         :source-paths ["src" "test"]
                         :compiler {

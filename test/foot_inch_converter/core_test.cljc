@@ -76,9 +76,11 @@
 (defn vfloat=
   "Compares two vectors of floats for equality using fuzzy compare"
   [v1 v2]
-  (every? true?
-          (map float= (vtofloat v1) (vtofloat v2))
-          )
+  (and (= (count v1) (count v2))
+       (every? true?
+               (map float= (vtofloat v1) (vtofloat v2))
+               )
+       )
   )
 
 (t/deftest feet-inches-regex-test
@@ -86,6 +88,9 @@
     (t/is (re-matches conv/feet-inches-regex "0"))
     (t/are [input] (re-matches conv/feet-inches-regex input)
              "0"
+                   "0 in"
+                   "0 inch"
+                   "0\""
              "0."
              "1.2"
              "0 1"
@@ -93,6 +98,9 @@
              "0 1.22"
              "0 0 1/2"
              "1.223 3.331 3/138"
+                   " 3 ft"
+                   "3.14in"
+                   "5'10\""
              )
     ))
 
@@ -105,6 +113,17 @@
                "000.000" [0.0 nil nil nil]
                "1 2" [1.0 2.0 nil nil]
                "1.23 4.56 3/4" [1.23 4.56 3.0 4.0]
+                       "0 3/4" [0 0 3 4]
+                       "3/4" [nil 0 3 4]
+                       "3/4 inches" [nil 0 3 4]
+                       "5.34\"" [0 5.34 nil nil]
+                       "4.56'" [4.56 nil nil nil]
+                       "4.334" [4.334 nil nil nil]
+                       "4.334 in" [0 4.334 nil nil]
+                       "4.334 4/7" [0 4.334 4 7]
+                       "4.334 4/7 inch" [0 4.334 4 7]
+                    ;; TODO:   " 4.334 ft 4/7 inch" [4.334 0 4 7]
+                       " 4.33 7/8" [0 4.33 7 8]
                )
     ))
 

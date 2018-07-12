@@ -22,7 +22,8 @@
 ;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(ns foot-inch-converter.core)
+(ns foot-inch-converter.core
+  (:require clojure.string))
 
 (def ^:const default-fraction-denominator 16)
 
@@ -34,21 +35,35 @@
   "A standard representation of any zero ratio  (0/N)==[0 N]; simplifies testing!"
   [0 1])
 
+(def ^:const inches-only-regex
+  "Regex that recognizes string that starts with an inches expression:
+      '3/4', '4 3/4', '4.332 in', '4.334 4/9'
+      "
+  #"^\s*((\d+[/]\d+)|(\d+(\.\d*)?(\s+(\d+)[/](\d+))?\s*(i|in|\"|inch|inches))|(\d+(\.\d*)?(\s+(\d+)[/](\d+)))).*$"
+  )
+
+(def ^:const foot-fraction-regex
+  "Detect something like '4.33 ft 4/3 inches"
+  #"^\s*\d+(\.\d*)?\s*(f|ft|'|foot|feet)\s*\d+[/]\d+.*$"
+  )
+
 (def ^:const feet-inches-regex
   "Regex that recognizes numbers in a 'feet inches fraction' string, eg: '10 3 5/8'"
   #?(:clj
      #"(?x)
   ^\s*                    # optional space at beginning
-  (\d+(?:\.\d*)?)         # capture *required* feet with optional decimal digits
-  (?:\s+                  # spaces separator
-     (\d+(?:\.\d*)?)      # capture optional feet with optional decimal digits
-     (?:\s+(\d+)[/](\d+))? # capture optional fraction numerator and denominator
+  (\d+(?:\.\d*)?)?         # capture *required* feet with optional decimal digits
+  (?:\s*(?:f|ft|'|foot|feet))?          # optional ft
+  (?:\s*                  # spaces separator
+     (\d+(?:\.\d*)?)      # capture optional inches with optional decimal digits
+     (?:\s+(\d+)[/](\d+))? # capture optional inch fraction numerator and denominator
+       (?:\s*(?:i|in|\"|inch|inches))? # optional inches
     )?                    # inches and fraction are optional
     \s*$                  # optional space at end"
      :cljs ;; same as :clj but without the "extended formatting"
      ;; BUG: cljs bug with '\/' in clj becoming '\\/' in js
-     ;; #"^\s*(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+)\/(\d+))?)?\s*$"
-     #"^\s*(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+)[/](\d+))?)?\s*$"
+     ;; #"^\s*(\d+(?:\.\d*)?)?(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+)\/(\d+))?)?\s*$"
+     #"^\s*(\d+(?:\.\d*)?)?(?:\s*(?:f|ft|'|foot|feet))?(?:\s*(\d+(?:\.\d*)?)(?:\s+(\d+)[/](\d+))?(?:\s*(?:i|in|\"|inch|inches))?)?\s*$"
      )
   )
 
@@ -63,14 +78,26 @@
   "Parse a 'feet inches fraction' string and return either nil if the
   string cannot be parsed or a vector of four floats (a feet-inches-vector)"
   [input]
-  (if-let [v (re-matches feet-inches-regex input)]
+  (let [
+        ;; feet-inches-regex does not recognize a pure fraction, eg "3/4"
+        input-temp (cond
+                     (re-matches inches-only-regex input) ;; if input starts with a fraction
+                     (str "0 " input)                       ;; then append "0 " to input string because "0 3/4" is inches
+
+                     (re-matches foot-fraction-regex input)
+                     (clojure.string/replace input #"f|ft|'|foot|feet" "ft 0 ")
+
+                     :else input                                  ;; else input is OK as is
+                     )
+        ]
+  (if-let [v (re-matches feet-inches-regex input-temp)]
     (->>
       v
       (drop 1)  ;; drop the complete match
       (map #(if % (parse-float %)))
       vec
       )
-    )
+    ))
   )
 
 (defn feet-inches-vector->meters
