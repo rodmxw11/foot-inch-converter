@@ -1,4 +1,4 @@
-;; Copyright (c) 2016-2017 Rodney Maxwell <contact@unitsapps.com>
+;; Copyright (c) 2016-2018 Rodney Maxwell <contact@unitsapps.com>
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@
   (if-let [v (re-matches feet-inches-regex input)]
     (->>
       v
-      (drop 1)
+      (drop 1)  ;; drop the complete match
       (map #(if % (parse-float %)))
       vec
       )

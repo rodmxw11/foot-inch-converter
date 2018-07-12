@@ -5,9 +5,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :main foot-inch-converter.core
   :dependencies [
-                 [org.clojure/clojure "1.8.0" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
-                 [lein-doo "0.1.7"]
+                 [org.clojure/clojure "1.9.0" :scope "provided"]
+                 [org.clojure/clojurescript "1.10.339" :scope "provided"]
+                 [lein-doo "0.1.10"]
                  ]
   :source-paths ["src"]
   :test-paths ["test"]
@@ -21,15 +21,30 @@
 
   :profiles
   {
-   ;; :dev {:aliases {"test-all" ["with-profile" "dev,1.9:dev,1.7:dev" "test"]}}
-   ;; :1.9 {:dependencies [[org.clojure/clojure "1.9.0-alpha12"]]}
-   ;; :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
+    :dev {:aliases {"test-all" ["with-profile" "dev,1.9:dev,1.7:dev" "test"]}}
+    :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
+    :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :uberjar {:aot :all}
    }
 
-  :plugins [[lein-cljsbuild "1.1.5" :exclusions [[org.clojure/clojure]]]
-            [lein-doo "0.1.7"]
-            [lein-figwheel "0.5.8"]
+  :builds {:minify {:source-paths ["src"]
+                    :compiler     {:output-to     "resources/public/js/main.js"
+                                   :output-dir    "cljsbuild-output-minify"
+                                   :optimizations :advanced
+                                   :pretty-print  false}}
+           :dev    {:source-paths ["src"]
+                    :compiler     {:output-to     "resources/public/js/main.js"
+                                   :output-dir    "resources/public/js/build-output-dev"
+                                   :optimizations :whitespace}}
+           :test   {:source-paths ["src" "test"]
+                    :compiler     {:output-to     "resources/public/js/main-test.js"
+                                   :optimizations :whitespace
+                                   :pretty-print  true}}
+           }
+
+  :plugins [[lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]
+            [lein-doo "0.1.10"]
+            [lein-figwheel "0.5.16"]
             ]
 
   :hooks [leiningen.cljsbuild]
@@ -87,7 +102,7 @@
                                    :output-to "rhino-out/tests.js"
                                    }
                         }
-                       #_{
+                       {
                         :id "test-node"
                         :source-paths ["src" "test"]
                         :compiler {
@@ -95,6 +110,46 @@
                                    :optimizations :simple
                                    :target :nodejs
                                    :output-to "node-out/tests.js"
+                                   }
+                        }
+                       {
+                        :id "test-chrome"
+                        :source-paths ["src" "test"]
+                        :compiler {
+                                   :main runners.doo
+                                   :optimizations :simple
+                                   :target :chrome
+                                   :output-to "chrome-out/tests.js"
+                                   }
+                        }
+                       {
+                        :id "test-chrome-headless"
+                        :source-paths ["src" "test"]
+                        :compiler {
+                                   :main runners.doo
+                                   :optimizations :simple
+                                   :target :chrome-headless
+                                   :output-to "chrome-headless-out/tests.js"
+                                   }
+                        }
+                       {
+                        :id "test-firefox"
+                        :source-paths ["src" "test"]
+                        :compiler {
+                                   :main runners.doo
+                                   :optimizations :simple
+                                   :target :firefox
+                                   :output-to "firefox-out/tests.js"
+                                   }
+                        }
+                       {
+                        :id "test-firefox-headless"
+                        :source-paths ["src" "test"]
+                        :compiler {
+                                   :main runners.doo
+                                   :optimizations :simple
+                                   :target :firefox-headless
+                                   :output-to "firefox-headless-out/tests.js"
                                    }
                         }
                        ]}
@@ -107,5 +162,9 @@
                                     "nashorn-out"
                                     "rhino-out"
                                     "out"
+                                    "chrome-out"
+                                    "chrome-headless-out"
+                                    "firefox-out"
+                                    "firefox-headless-out"
                                     ]
   )

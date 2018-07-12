@@ -11,3 +11,9 @@ pom.xml.asc
 .hg/
 *.iml
 .idea/
+*-out/
+node_modules/
+package*.json
+.lein-failures
+
+
