@@ -35,6 +35,21 @@
   "A standard representation of any zero ratio  (0/N)==[0 N]; simplifies testing!"
   [0 1])
 
+(defn format-str [template [first & rest]]
+  "Replace each %s in template with an element from the second argument"
+  (if template
+    (if first
+      (recur (clojure.string/replace-first template "%s" first) rest)
+      template
+      )
+    )
+  )
+
+(defn format-regex [template-regex & rest-regex]
+  "Replace %s in template-regex with elements from rest-regex"
+  (if template-regex
+    (re-pattern (format-str (str template-regex) (map str rest-regex)))))
+
 (def ^:const inches-only-regex
   "Regex that recognizes string that starts with an inches expression:
       '3/4', '4 3/4', '4.332 in', '4.334 4/9'

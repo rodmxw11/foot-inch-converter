@@ -15,5 +15,4 @@ pom.xml.asc
 node_modules/
 package*.json
 .lein-failures
-
-
+out/

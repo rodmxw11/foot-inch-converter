@@ -83,6 +83,30 @@
        )
   )
 
+(t/deftest format-str-test
+  (t/testing "format-str basic test"
+    (t/are [template args formatted] (= formatted (conv/format-str template args))
+                                     nil [] nil
+                                     nil nil nil
+                                     ""  nil ""
+                                     "" [] ""
+                                     "" ["1"] ""
+                                     "%s" nil "%s"
+                                     "%s" [] "%s"
+                                     "%s" ["1"] "1"
+                                     "%s" ["1" "2" "3"] "1"
+                                     "%s%s%s" ["1" "2" "3"] "123"
+                                     "The %s %s fox jumped %s the %s dog" ["quick" "brown" "over" "lazy"] "The quick brown fox jumped over the lazy dog"
+                                     )))
+
+(t/deftest format-regex-test
+  (t/testing "format regex expressions"
+    (t/are [template-regex args-regex answer]
+      (= answer (apply conv/format-regex (concat [template-regex] args-regex)))
+      nil nil nil
+      #"%s" [#"a"] #"a"
+      )))
+
 (t/deftest feet-inches-regex-test
   (t/testing "foot-inch-regex basic test"
     (t/is (re-matches conv/feet-inches-regex "0"))
